@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="d01b52fe-332f-45a2-98c7-4fbcb028c32a" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" readTimeout="${http.timeout}"/>
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="389a0ad8-437e-45fd-8883-02cc3b9272d1" >
+		<db:generic-connection url='${db.url}' driverClassName="${db.driver}" user="${db.user}" password="${secure::db.password}"/>
+	</db:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="184d46d8-304c-44df-8ee9-4cc84411c215" file=" envt-${envt}.yaml" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="03f3e48b-ecfc-4e79-afe1-c19d179f334c" file=" envt-${envt}.yaml" key="${code}" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<flow name="databaseFlow" doc:id="19cf29aa-5e57-4643-b601-d9baf7a356d9" >
+		<http:listener doc:name="Listener" doc:id="c06909ee-9133-4bb3-8912-0d8beb063f38" config-ref="HTTP_Listener_config" path="${http.path}"/>
+		<logger level="INFO" doc:name="strat logger" doc:id="e44a3010-b5b8-4b15-8d4e-bd998cdc5c6b" message='#["flow has started now()"]'/>
+		<db:select doc:name="Select for getting student details" doc:id="8343dea3-9615-4d43-b2c2-44d9058f59a8" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT id from tab;]]></db:sql>
+		</db:select>
+		<logger level="INFO" doc:name="database logger" doc:id="9537fed8-c986-4bb9-bbde-0b87ce77d03f" message="details inserted" />
+		<ee:transform doc:name="Getting db result and adding company names" doc:id="e86e7ea9-0491-4a5e-80fc-299756fcd73c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload ++[{"pooja":p("company.pooja"),"rakesh1":p("company.rakesh")}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="end logger" doc:id="5a80a40c-7e3d-488e-9437-c143cb5c06f0" message="response sent successfully!"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e01b6cf4-ce12-40f8-9b34-01094e407bbe" type="ANY">
+				<logger level="INFO" doc:name="Logger" doc:id="f54c585b-ae41-4b71-816f-36a06baf1f5a" message='#["on error propogate block"]'/>
+				<ee:transform doc:name="Transform Message" doc:id="b8acfb5a-5fe9-4184-8ca0-1b1900d73c88" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"please try after sometime"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="e643defc-35ba-4da5-8ae3-1ed27ab85c25" type="ANY">
+				<logger level="INFO" doc:name="Logger" doc:id="c986290d-6fae-47c1-9daa-3f4c863fb3b5" message='#["on error continue block"]' />
+				<ee:transform doc:name="Transform Message" doc:id="9f9d5335-89f3-467d-be79-3c4363188ae6">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+ "200"
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

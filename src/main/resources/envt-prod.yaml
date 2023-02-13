@@ -1,0 +1,14 @@
+http:
+      port: "8081"
+      timeout: "300000" 
+      path: "read-database"
+db:
+      url: "jdbc:sqlite:C:\\Users\\Rakesh\\cars.db"
+      driver: "org.sqlite.JDBC"
+      user: "system"
+      password: "![Q1K+ZqzvR4E=]"
+      
+company:
+    rakesh: "iqviaPROD"   
+    pooja:  "capgeminiPROD"  
+    
